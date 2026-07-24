@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="core" cx="42%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#EAFBFF"/>
+      <stop offset="45%" stop-color="#3FD8FF"/>
+      <stop offset="100%" stop-color="#0A5B78"/>
+    </radialGradient>
+  </defs>
+  <circle cx="32" cy="32" r="31" fill="#04080D"/>
+  <circle cx="32" cy="32" r="27.5" fill="none" stroke="#3FD8FF" stroke-width="2"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#3FD8FF" stroke-width="1" opacity="0.45" stroke-dasharray="3 4"/>
+  <!-- fence-line ticks along the lower arc -->
+  <g stroke="#3FD8FF" stroke-width="2" stroke-linecap="round" opacity="0.8">
+    <line x1="16" y1="49" x2="16" y2="43"/>
+    <line x1="22" y1="52" x2="22" y2="45"/>
+    <line x1="42" y1="52" x2="42" y2="45"/>
+    <line x1="48" y1="49" x2="48" y2="43"/>
+  </g>
+  <line x1="13" y1="45" x2="51" y2="45" stroke="#3FD8FF" stroke-width="1.4" opacity="0.6"/>
+  <!-- LK monogram -->
+  <text x="32" y="31" text-anchor="middle" dominant-baseline="central"
+        font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="24"
+        fill="url(#core)" letter-spacing="-1">LK</text>
+</svg>
