@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L&K // COMMAND</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="lk-os/styles.css">
+</head>
+<body>
+
+<div class="boot" id="boot" role="button" tabindex="0" aria-label="Skip boot sequence">
+  <div class="boot-inner">
+    <div class="boot-logo">L&amp;K</div>
+    <div class="boot-lines" id="bootLines"></div>
+    <div class="boot-skip">CLICK OR PRESS ANY KEY TO SKIP</div>
+  </div>
+</div>
+
+<canvas id="particles" aria-hidden="true"></canvas>
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="notif-tray" id="notifTray"></div>
+
+<!-- command palette -->
+<div class="modal cmd-modal" id="cmdPalette">
+  <div class="modal-card cmd-card">
+    <input type="text" id="cmdInput" class="hud-input cmd-input" placeholder="Type a command&hellip; (Add customer, Open pipeline, Read daily briefing&hellip;)">
+    <div class="cmd-list" id="cmdList"></div>
+    <div class="cmd-hint">&uarr;&darr; navigate &middot; Enter to run &middot; Esc to close</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="sys-id">
+    <div class="sys-name">L&amp;K // COMMAND</div>
+    <div class="sys-sub">WOOD FENCE SERVICES &amp; MORE &middot; HOUSTON TX &middot; OS v2.3</div>
+  </div>
+  <div class="topbar-right">
+    <div class="device-status" id="deviceStatus"></div>
+    <button type="button" class="hud-btn" id="cmdOpenBtn" title="Command palette (Cmd/Ctrl+K)">⌘K</button>
+    <button type="button" class="hud-btn" id="editDataBtn" title="Manage business settings, crew, and data">EDIT DATA</button>
+    <button type="button" class="notif-bell" id="notifBell" aria-label="Notifications">🔔<span class="notif-badge" id="notifBadge">0</span></button>
+    <div class="sys-clock">
+      <div class="clock-time" id="time">--:--:--</div>
+      <div class="clock-date" id="date">loading</div>
+      <button type="button" id="muteBtn" class="mute-btn" aria-pressed="false">AUDIO</button>
+    </div>
+  </div>
+</div>
+
+<nav class="navbar">
+  <button type="button" class="lk-tab" data-view="overview">Overview</button>
+  <button type="button" class="lk-tab" data-view="pipeline">Pipeline</button>
+  <button type="button" class="lk-tab" data-view="analytics">Analytics</button>
+  <button type="button" class="lk-tab" data-view="calendar">Calendar</button>
+  <button type="button" class="lk-tab" data-view="customers">Customers</button>
+  <button type="button" class="lk-tab" data-view="messages">Messages</button>
+  <button type="button" class="lk-tab" data-view="media">Media</button>
+  <button type="button" class="lk-tab" data-view="content">Content Studio</button>
+  <button type="button" class="lk-tab" data-view="command">Command Panels</button>
+  <button type="button" class="lk-tab" data-view="marketing">Marketing</button>
+  <button type="button" class="lk-tab" data-view="weather">Weather Center</button>
+  <button type="button" class="lk-tab" data-view="estimator">Estimator</button>
+  <button type="button" class="lk-tab" data-view="lounge">The Lounge</button>
+  <button type="button" class="lk-tab" data-view="vision">Vision Center</button>
+  <button type="button" class="lk-tab" data-view="settings">Settings</button>
+</nav>
+
+<div class="diagline" id="diagline">PWR --.-% &middot; NET --ms &middot; UPTIME 00:00:00</div>
+
+<div class="demo-banner" id="demoBanner">
+  <span>⚠ Showing sample data, clearly separate from anything you enter. Nothing here is real until you replace it.</span>
+  <button type="button" class="hud-btn tiny" id="demoBannerClearBtn">CLEAR DEMO DATA</button>
+</div>
+
+<!-- ================= OVERVIEW ================= -->
+<div class="lk-view active" data-view="overview">
+
+  <div class="greeting">
+    <div class="greet-line" id="greet">SYSTEMS ONLINE &middot; WELCOME BACK, <b>EDEL</b></div>
+  </div>
+
+  <div class="assistant-panel">
+    <div class="assistant-top">
+      <span class="assistant-label">L&amp;K AI ASSISTANT</span>
+      <div style="display:flex; align-items:center; gap:10px">
+        <button type="button" class="hud-btn tiny" id="refreshBriefingBtn" title="Recompute the briefing from current data">REFRESH BRIEFING</button>
+        <button type="button" class="mic-btn" id="micBtn" title="Voice command">🎙️</button>
+      </div>
+    </div>
+    <div id="assistantText">Preparing this morning's briefing&hellip;</div>
+    <div class="mic-status" id="briefingTimestamp"></div>
+    <div class="mic-status" id="micStatus">Tap the mic and try: "open gmail", "show today's jobs", "add customer", "read briefing".</div>
+  </div>
+
+  <!-- ============ MISSION CONTROL ============ -->
+  <div class="mc-row-label">EXECUTIVE SUMMARY</div>
+  <div class="brief-grid" id="briefingGrid"></div>
+
+  <div class="mc-row-label">IMMEDIATE ACTION</div>
+  <div class="brief-grid" id="mcRow2"></div>
+
+  <div class="mc-row-label">OPERATIONS</div>
+  <div class="brief-grid" id="mcRow3"></div>
+
+  <div class="mc-row-label">BUSINESS SNAPSHOT</div>
+  <div class="brief-grid" id="mcRow5"></div>
+
+  <div class="mc-shortcuts" id="mcRow4"></div>
+
+  <div class="panel vision-widget" id="visionReminderWidget" style="max-width:1200px; margin:14px auto 0"><span class="br"></span></div>
+
+  <div class="reactor-wrap">
+    <div class="reactor" role="link" tabindex="0" data-url="https://landkwoodfenceservices.com" title="Open the L&K website">
+      <div class="r-ring r1"></div>
+      <div class="r-segments"></div>
+      <div class="r-ring r2"></div>
+      <div class="r-ring r3"></div>
+      <div class="r-core"><span>L&amp;K</span><small>WEBSITE</small></div>
+      <div class="reactor-tag">landkwoodfenceservices.com</div>
+      <span class="reactor-key">[W]</span>
+    </div>
+  </div>
+
+  <div class="console" id="console">
+    <div class="section">
+      <div class="section-head"><span class="tick"></span><h2>Field Status</h2><span class="rail"></span></div>
+      <div class="grid panel-grid">
+
+        <div class="panel" id="panel-weather">
+          <span class="br"></span>
+          <div class="m-top">
+            <span class="m-id">SYS-WX</span>
+            <span class="m-status"><span class="m-dot" id="wxDot" style="--c:var(--text-dim)"></span><span id="wxStatus">SYNCING</span></span>
+          </div>
+          <div class="panel-title">Houston Weather</div>
+          <div id="wxCompact"><div class="wx-temp">--&deg;</div><div class="wx-cond">Contacting Open-Meteo&hellip;</div></div>
+        </div>
+
+        <div class="panel" id="panel-log">
+          <span class="br"></span>
+          <div class="m-top">
+            <span class="m-id">SYS-LOG</span>
+            <span class="m-status"><span class="m-dot" style="--c:var(--good)"></span><span id="logCount">0/0</span></span>
+          </div>
+          <div class="panel-title">Mission Log</div>
+          <div class="log-input-row">
+            <input type="text" id="logInput" class="hud-input" placeholder="Add a job / task&hellip;" maxlength="80">
+            <button type="button" id="logAdd" class="hud-btn">ADD</button>
+          </div>
+          <div class="log-list" id="logList"></div>
+        </div>
+
+        <div class="panel" id="panel-quote">
+          <span class="br"></span>
+          <div class="m-top">
+            <span class="m-id">SYS-QTE</span>
+            <span class="m-status"><span class="m-dot" style="--c:var(--good)"></span>READY</span>
+          </div>
+          <div class="panel-title">Quick Quote</div>
+          <div class="qte-row">
+            <div class="qte-field"><label for="qteFeet">LINEAR FT</label><input type="number" id="qteFeet" class="hud-input" min="0" step="1" placeholder="0"></div>
+            <div class="qte-field"><label for="qteRate">$ / FT</label><input type="number" id="qteRate" class="hud-input" min="0" step="0.01" placeholder="0.00"></div>
+          </div>
+          <div class="qte-total"><span class="qte-total-label">ESTIMATE TOTAL</span><span class="qte-total-value" id="qteTotal">$0.00</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PIPELINE ================= -->
+<div class="lk-view" data-view="pipeline">
+  <div class="view-body">
+    <div class="view-title-row">
+      <div class="view-title">Job Pipeline</div>
+      <button type="button" class="hud-btn tiny" id="pipelineArchiveToggle">SHOW ARCHIVED (0)</button>
+    </div>
+    <div class="kanban-board" id="kanbanBoard"></div>
+  </div>
+</div>
+
+<!-- ================= ANALYTICS ================= -->
+<div class="lk-view" data-view="analytics">
+  <div class="view-body">
+    <div class="view-title">Analytics</div>
+    <div id="analyticsBody"></div>
+    <div id="biBody"></div>
+  </div>
+</div>
+
+<!-- ================= CALENDAR ================= -->
+<div class="lk-view" data-view="calendar">
+  <div class="view-body">
+    <div class="view-title-row">
+      <div class="view-title">Calendar</div>
+      <button type="button" class="hud-btn tiny" id="calAddEvent">+ ADD EVENT</button>
+    </div>
+    <div class="cal-toolbar">
+      <button type="button" class="hud-btn cal-mode-btn active" data-mode="month">MONTH</button>
+      <button type="button" class="hud-btn cal-mode-btn" data-mode="week">WEEK</button>
+      <button type="button" class="hud-btn cal-mode-btn" data-mode="day">DAY</button>
+    </div>
+    <div class="cal-layout">
+      <div id="calMain"></div>
+      <div>
+        <div class="panel-title">Today's Schedule</div>
+        <div id="calToday" style="margin-bottom:18px"></div>
+        <div class="panel-title">Upcoming</div>
+        <div id="calUpcoming" style="margin-bottom:18px"></div>
+        <div class="panel-title">Crew Assignments</div>
+        <div id="calCrew"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CUSTOMERS ================= -->
+<div class="lk-view" data-view="customers">
+  <div class="view-body">
+    <div class="view-title-row">
+      <div class="view-title">Customer Database</div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn tiny" id="custImportBtn">IMPORT CRM WORKBOOK</button>
+        <button type="button" class="hud-btn tiny" id="custImportHistoryBtn">IMPORT HISTORY</button>
+        <button type="button" class="hud-btn tiny" id="custNewBtn">+ NEW CUSTOMER</button>
+      </div>
+    </div>
+    <input type="file" id="importFileInput" accept=".xlsx" style="display:none">
+    <div class="cust-toolbar">
+      <input type="text" id="custSearch" class="hud-input" placeholder="Search by name, phone, or address&hellip;">
+      <select id="custFilterStatus" class="hud-input cust-filter"><option value="">All statuses</option><option value="lead">Lead</option><option value="active">Active</option><option value="past">Past</option><option value="inactive">Inactive</option></select>
+      <select id="custSort" class="hud-input cust-filter"><option value="newest">Newest</option><option value="value">Highest value</option><option value="balance">Outstanding balance</option><option value="contact">Last contact</option></select>
+      <select id="custEnrichmentFilter" class="hud-input cust-filter">
+        <option value="">All records</option>
+        <option value="imported">All imported records</option>
+        <option value="needsJobDetails">Needs job details</option>
+        <option value="missingValue">Missing job value</option>
+        <option value="missingFenceType">Missing fence type</option>
+        <option value="missingDeposit">Missing deposit</option>
+        <option value="missingFinalInvoice">Missing final invoice</option>
+        <option value="missingCrew">Missing assigned crew</option>
+        <option value="missingCompletionDate">Missing completion date</option>
+        <option value="wonWithoutJob">Won/Hired without a job record</option>
+      </select>
+    </div>
+    <div class="cust-layout">
+      <div id="custList"></div>
+      <div id="custDetail"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MEDIA ================= -->
+<div class="lk-view" data-view="media">
+  <div class="view-body">
+    <div class="view-title">Media Center</div>
+    <div id="mediaBody"></div>
+  </div>
+</div>
+
+<!-- ================= CONTENT STUDIO ================= -->
+<div class="lk-view" data-view="content">
+  <div class="view-body">
+    <div class="view-title">AI Content Studio</div>
+    <div class="cs-buttons">
+      <button type="button" class="hud-btn cs-gen-btn" data-type="instagram">INSTAGRAM CAPTION</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="facebook">FACEBOOK POST</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="tiktok">TIKTOK HOOK</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="googleUpdate">GOOGLE BUSINESS UPDATE</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="followUp">CUSTOMER FOLLOW-UP</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="quoteEmail">QUOTE EMAIL</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="reviewRequest">REVIEW REQUEST</button>
+      <button type="button" class="hud-btn cs-gen-btn" data-type="invoiceMessage">INVOICE MESSAGE</button>
+    </div>
+    <textarea id="csOutput" class="hud-input" placeholder="Generated draft will appear here&hellip;" readonly></textarea>
+    <div class="panel-actions"><button type="button" class="hud-btn" id="csCopy">COPY</button></div>
+    <div class="panel-title" style="margin-top:16px">Recent Drafts</div>
+    <div id="csHistory"></div>
+  </div>
+</div>
+
+<!-- ================= COMMAND PANELS ================= -->
+<div class="lk-view" data-view="command">
+  <div class="view-body">
+    <div class="view-title">Command Panels</div>
+    <div class="grid panel-grid">
+      <div class="panel" id="panelGmail"><span class="br"></span></div>
+      <div class="panel" id="panelMeta"><span class="br"></span></div>
+      <div class="panel" id="panelThumbtack"><span class="br"></span></div>
+      <div class="panel" id="panelGoogleBiz"><span class="br"></span></div>
+      <div class="panel" id="panelSheets"><span class="br"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MARKETING INTELLIGENCE ================= -->
+<div class="lk-view" data-view="marketing">
+  <div class="view-body">
+    <div class="view-title">Marketing Intelligence</div>
+    <div id="marketingBody"></div>
+  </div>
+</div>
+
+<!-- ================= WEATHER CENTER ================= -->
+<div class="lk-view" data-view="weather">
+  <div class="view-body">
+    <div class="view-title">Weather Center</div>
+    <div class="panel" style="max-width:700px"><span class="br"></span><div id="wxCenterBody"></div></div>
+
+    <div class="panel-title" style="margin-top:20px">Live Radar</div>
+    <div class="panel" id="radarMapWrap"><span class="br"></span>
+      <div class="radar-toolbar">
+        <span class="wx-note neutral" id="radarStatus">LOADING…</span>
+        <button type="button" class="hud-btn tiny" id="radarPrev">⏮ PREV</button>
+        <button type="button" class="hud-btn tiny" id="radarPlayPause">▶ PLAY</button>
+        <button type="button" class="hud-btn tiny" id="radarNext">NEXT ⏭</button>
+        <button type="button" class="hud-btn tiny" id="radarLatest">LATEST</button>
+        <button type="button" class="hud-btn tiny" id="radarRefresh">REFRESH</button>
+        <button type="button" class="hud-btn tiny" id="radarReset">RESET TO HOUSTON</button>
+        <button type="button" class="hud-btn tiny" id="radarFullscreen">⛶ FULLSCREEN</button>
+        <select id="radarSpeed" class="hud-input" style="max-width:110px"><option value="slow">SLOW</option><option value="normal">NORMAL</option><option value="fast">FAST</option></select>
+      </div>
+      <div id="radarMap" class="radar-map"></div>
+      <div class="radar-toolbar" style="margin-top:8px">
+        <label style="font-size:9px; color:var(--text-dim)">OPACITY</label>
+        <input type="range" id="radarOpacity" min="0.1" max="1" step="0.05" style="max-width:140px">
+        <span id="radarFrameTime" class="mic-status"></span>
+        <span id="radarLastUpdated" class="mic-status"></span>
+      </div>
+      <div class="radar-timeline" id="radarTimeline"></div>
+      <div class="wx-note warn" id="radarError"></div>
+      <div class="mic-status" style="margin-top:6px">Radar imagery © RainViewer · Basemap © OpenStreetMap contributors. "Past" frames are real observed radar; any "Forecast" frames are RainViewer's own short-range nowcast, never invented here.</div>
+    </div>
+
+    <div class="panel-title" style="margin-top:20px">Weather Impact</div>
+    <div id="weatherImpactBody"></div>
+  </div>
+</div>
+
+<!-- ================= ESTIMATOR ================= -->
+<div class="lk-view" data-view="estimator">
+  <div class="view-body">
+    <div class="view-title">Quick Estimator</div>
+    <div class="panel" style="max-width:760px"><span class="br"></span>
+      <div class="est-form">
+        <div class="qte-field"><label>CUSTOMER</label><input type="text" id="estCustomer" class="hud-input" placeholder="Customer name"></div>
+        <div class="qte-field"><label>SERVICE</label><select id="estService" class="hud-input"></select></div>
+        <div class="qte-field"><label id="estQtyLabel">LINEAR FT</label><input type="number" id="estQty" class="hud-input" min="0" value="0"></div>
+        <div class="qte-field"><label>MATERIAL $/UNIT</label><input type="number" id="estMaterial" class="hud-input" min="0" step="0.01"></div>
+        <div class="qte-field"><label>LABOR HRS/UNIT</label><input type="number" id="estLaborHrs" class="hud-input" min="0" step="0.01"></div>
+        <div class="qte-field"><label>$/HR</label><input type="number" id="estHourly" class="hud-input" min="0" step="1"></div>
+        <div class="qte-field"><label>PROFIT MARGIN %</label><input type="number" id="estMargin" class="hud-input" min="0" step="1"></div>
+        <div class="qte-field"><label>DEPOSIT %</label><input type="number" id="estDeposit" class="hud-input" min="0" step="1"></div>
+      </div>
+      <div class="est-out">
+        <div class="est-line"><label>MATERIALS</label><span id="estMaterialTotal">$0.00</span></div>
+        <div class="est-line"><label>LABOR</label><span id="estLaborTotal">$0.00</span></div>
+        <div class="est-line"><label>PROFIT</label><span id="estProfitTotal">$0.00</span></div>
+        <div class="est-line est-total"><label>TOTAL</label><span id="estTotal">$0.00</span></div>
+        <div class="est-line"><label>DEPOSIT DUE</label><span id="estDepositTotal">$0.00</span></div>
+        <div class="est-line"><label>BALANCE</label><span id="estBalanceTotal">$0.00</span></div>
+      </div>
+      <div class="panel-actions">
+        <button type="button" class="hud-btn" id="estPdf">GENERATE PDF</button>
+        <button type="button" class="hud-btn" id="estCopy">COPY ESTIMATE</button>
+        <button type="button" class="hud-btn" id="estSaveToPipeline">SAVE ESTIMATE TO PIPELINE</button>
+      </div>
+      <div class="panel-actions" id="estContextActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MESSAGES ================= -->
+<div class="lk-view" data-view="messages">
+  <div class="view-body">
+    <div class="view-title">Messages</div>
+    <div class="panel-title" style="margin-bottom:8px">Follow-Up Queue</div>
+    <div class="followup-strip" id="followUpQueue"></div>
+
+    <div class="messages-layout">
+      <div>
+        <input type="text" id="msgSearch" class="hud-input" placeholder="Search customers…" style="margin-bottom:8px">
+        <select id="msgFilterStage" class="hud-input" style="margin-bottom:6px">
+          <option value="">All stages</option>
+          <option value="new">New Lead</option><option value="contacted">Contacted</option>
+          <option value="estimate-scheduled">Estimate Scheduled</option><option value="quoted">Quote Sent</option>
+          <option value="follow-up">Follow-Up</option><option value="approved">Approved</option>
+          <option value="deposit-paid">Deposit Paid</option><option value="scheduled">Scheduled</option>
+          <option value="progress">In Progress</option><option value="waiting">Waiting</option>
+          <option value="completed">Completed</option><option value="lost">Lost</option>
+        </select>
+        <label style="display:block; font-size:11px; margin-bottom:6px; color:var(--text-dim)"><input type="checkbox" id="msgFilterFollowUp"> Follow-up due only</label>
+        <select id="msgSort" class="hud-input" style="margin-bottom:10px">
+          <option value="recent">Most recent</option><option value="newest">Newest lead</option><option value="value">Highest value</option>
+        </select>
+        <div id="msgCustList"></div>
+      </div>
+      <div>
+        <div id="conversationHeader"></div>
+        <div class="conversation-body" id="conversationBody"></div>
+
+        <select id="composerCustSelect" class="hud-input" style="margin-bottom:6px"></select>
+        <div class="cust-contact">Phone: <span id="composerPhone">—</span></div>
+        <textarea id="composerBody" class="hud-input" placeholder="Type a message, or pick a template below…"></textarea>
+        <div class="mic-status" id="composerCount">0 chars</div>
+        <div id="composerPreview"></div>
+        <div class="composer-actions">
+          <button type="button" class="hud-btn" id="composerCopy">COPY MESSAGE</button>
+          <button type="button" class="hud-btn" id="composerSms">OPEN SMS APP</button>
+          <button type="button" class="hud-btn" id="composerDraft">SAVE DRAFT</button>
+          <button type="button" class="hud-btn" id="composerLogSent">LOG AS SENT</button>
+          <button type="button" class="hud-btn" id="composerFollowUp">SCHEDULE FOLLOW-UP</button>
+          <button type="button" class="hud-btn" id="composerNote">ADD INTERNAL NOTE</button>
+          <button type="button" class="hud-btn" id="composerMarkDone">MARK FOLLOW-UP COMPLETE</button>
+        </div>
+      </div>
+      <div id="customerContext"></div>
+    </div>
+
+    <div class="panel" style="margin-top:20px"><span class="br"></span>
+      <div class="panel-title-row">
+        <div class="panel-title">Message Templates</div>
+        <div class="panel-actions">
+          <button type="button" class="hud-btn tiny" id="tplNewBtn">+ NEW</button>
+          <button type="button" class="hud-btn tiny" id="tplEditBtn">EDIT</button>
+          <button type="button" class="hud-btn tiny" id="tplDupBtn">DUPLICATE</button>
+          <button type="button" class="hud-btn tiny" id="tplFavBtn">★ FAVORITE</button>
+          <button type="button" class="hud-btn tiny" id="tplArchiveBtn">ARCHIVE</button>
+          <button type="button" class="hud-btn tiny" id="tplDeleteBtn" style="border-color:var(--danger); color:var(--danger)">DELETE</button>
+        </div>
+      </div>
+      <div class="mic-status" style="margin-bottom:8px">Click a template to load it into the composer above. Tokens: {firstName} {fullName} {businessName} {ownerName} {service} {estimateAmount} {depositAmount} {balance} {appointmentDate} {appointmentTime} {address} {phone} {website}</div>
+      <div id="templateList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= THE LOUNGE ================= -->
+<div class="lk-view" data-view="lounge">
+  <div class="view-body">
+    <div class="view-title-row">
+      <div class="view-title">The Lounge</div>
+      <button type="button" class="hud-btn" id="loungeReturnBtn">↩ RETURN TO COMMAND</button>
+    </div>
+    <div id="loungeQuote"></div>
+
+    <div class="lounge-shell">
+      <nav class="lounge-subnav">
+        <button type="button" class="lounge-subtab" data-sub="music">Music Center</button>
+        <button type="button" class="lounge-subtab" data-sub="ambient">Ambient Sound</button>
+        <button type="button" class="lounge-subtab" data-sub="focus">Focus Mode</button>
+        <button type="button" class="lounge-subtab" data-sub="breakroom">Break Room</button>
+        <button type="button" class="lounge-subtab" data-sub="simulations">Simulations</button>
+        <button type="button" class="lounge-subtab" data-sub="decisions">Decision Room</button>
+        <button type="button" class="lounge-subtab" data-sub="ideas">Idea Vault</button>
+        <button type="button" class="lounge-subtab" data-sub="reflection">Daily Reflection</button>
+        <button type="button" class="lounge-subtab" data-sub="nightshift">Night Shift</button>
+      </nav>
+
+      <div class="lounge-sub" data-sub="music">
+        <div class="panel-actions" style="margin-bottom:10px"><button type="button" class="hud-btn" id="openAppleMusicBtn">OPEN APPLE MUSIC</button></div>
+        <div class="grid panel-grid" id="musicPresets"></div>
+        <div class="lounge-panel" style="margin-top:16px">
+          <div class="panel-title">Local Audio</div>
+          <input type="file" id="localAudioInput" accept="audio/*" multiple>
+          <div class="player-controls">
+            <button type="button" class="hud-btn" id="musicPrev">⏮</button>
+            <button type="button" class="hud-btn" id="musicPlayPause">▶ / ⏸</button>
+            <button type="button" class="hud-btn" id="musicNext">⏭</button>
+            <button type="button" class="hud-btn" id="musicStop">⏹ STOP</button>
+            <button type="button" class="hud-btn" id="musicShuffle">🔀 SHUFFLE</button>
+            <button type="button" class="hud-btn" id="musicRepeat">🔁 REPEAT</button>
+            <button type="button" class="hud-btn" id="musicMuteBtn">🔊 MUTE</button>
+          </div>
+          <input type="range" id="musicProgress" min="0" max="100" value="0">
+          <div class="mic-status" id="musicTime">0:00 / 0:00</div>
+          <label style="display:block; margin-top:8px; font-size:10px; color:var(--text-dim)">VOLUME</label>
+          <input type="range" id="musicVolume" min="0" max="1" step="0.05">
+          <div class="cust-sub-title">Queue</div>
+          <div id="musicQueue"></div>
+          <div id="nowPlaying"></div>
+          <div class="mic-status" style="margin-top:8px">Local files use a temporary link — you'll need to reselect them after fully closing and reopening the browser.</div>
+        </div>
+      </div>
+
+      <div class="lounge-sub" data-sub="ambient">
+        <div class="panel-title">Ambient Sound Center</div>
+        <div class="ambient-grid">
+          <button type="button" class="hud-btn ambient-btn" data-sound="none">None</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="fireplace">Fireplace</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="rain">Rain</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="office">Quiet Office</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="city">Night City</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="workshop">Workshop Hum</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="fan">Soft Fan</button>
+          <button type="button" class="hud-btn ambient-btn" data-sound="brown">Brown Noise</button>
+        </div>
+        <label style="display:block; margin-top:12px; font-size:10px; color:var(--text-dim)">AMBIENT VOLUME</label>
+        <input type="range" id="ambientVolume" min="0" max="1" step="0.05">
+        <button type="button" class="hud-btn" id="ambientMuteBtn" style="margin-top:8px">🔊 AMBIENT</button>
+        <div class="mic-status" style="margin-top:8px">All ambient textures are synthesized live — nothing downloaded, zero copyright risk.</div>
+      </div>
+
+      <div class="lounge-sub" data-sub="focus">
+        <div class="panel-title">Focus Mode</div>
+        <div id="focusIdle">
+          <label style="display:block; font-size:10px; color:var(--text-dim); margin-bottom:4px">TASK</label>
+          <select id="focusTaskSelect" class="hud-input" style="margin-bottom:10px"></select>
+          <div class="focus-dur-row">
+            <button type="button" class="hud-btn focus-dur-btn" data-min="25">25 MIN</button>
+            <button type="button" class="hud-btn focus-dur-btn" data-min="45">45 MIN</button>
+            <button type="button" class="hud-btn focus-dur-btn" data-min="60">60 MIN</button>
+            <button type="button" class="hud-btn focus-dur-btn" data-min="90">90 MIN</button>
+            <input type="number" id="focusCustomMin" class="hud-input" placeholder="Custom min" style="max-width:120px">
+            <button type="button" class="hud-btn" id="focusCustomStart">START CUSTOM</button>
+          </div>
+          <div class="cust-sub-title">Recent Sessions</div>
+          <div id="focusHistory"></div>
+        </div>
+        <div id="focusRunning" style="display:none">
+          <div id="focusObjective" class="wx-note neutral"></div>
+          <div id="focusCountdown">00:00</div>
+          <div id="focusTaskLabel"></div>
+          <div class="panel-actions" style="justify-content:center"><button type="button" class="hud-btn" id="focusAbandon">EXIT FOCUS</button></div>
+        </div>
+      </div>
+
+      <div class="lounge-sub" data-sub="breakroom">
+        <div class="panel-title">Strategic Break Room</div>
+        <div id="breakIdle">
+          <div class="focus-dur-row">
+            <button type="button" class="hud-btn break-dur-btn" data-min="5">5 MIN RESET</button>
+            <button type="button" class="hud-btn break-dur-btn" data-min="10">10 MIN RECHARGE</button>
+            <button type="button" class="hud-btn break-dur-btn" data-min="15">15 MIN STRATEGIC</button>
+            <input type="number" id="breakCustomMin" class="hud-input" placeholder="Custom min" style="max-width:120px">
+            <button type="button" class="hud-btn" id="breakCustomStart">START CUSTOM</button>
+          </div>
+          <div class="cust-sub-title">Recent Breaks</div>
+          <div id="breakHistory"></div>
+        </div>
+        <div id="breakRunning" style="display:none">
+          <div id="breakActivityLabel"></div>
+          <div id="breakCountdown">00:00</div>
+          <div class="panel-actions" style="justify-content:center"><button type="button" class="hud-btn" id="breakSkip">END BREAK</button></div>
+        </div>
+      </div>
+
+      <div class="lounge-sub" data-sub="simulations">
+        <div class="panel-title">Strategic Simulations</div>
+        <div class="sim-launch-row">
+          <button type="button" class="hud-btn sim-launch" data-game="memory">MEMORY GRID</button>
+          <button type="button" class="hud-btn sim-launch" data-game="fence">FENCE PLANNER</button>
+          <button type="button" class="hud-btn sim-launch" data-game="quote">QUOTE CHALLENGE</button>
+          <button type="button" class="hud-btn" id="simSound">🔊 SOUND ON</button>
+          <button type="button" class="hud-btn" id="simExit">EXIT GAME</button>
+        </div>
+        <div id="simBody"></div>
+        <div class="cust-sub-title" style="margin-top:14px">Coming Soon</div>
+        <div class="sim-launch-row">
+          <button type="button" class="hud-btn" disabled title="Not yet available">CREW DISPATCHER</button>
+          <button type="button" class="hud-btn" disabled title="Not yet available">STORM RESPONSE</button>
+          <button type="button" class="hud-btn" disabled title="Not yet available">MATERIAL ORDERING</button>
+          <button type="button" class="hud-btn" disabled title="Not yet available">CUSTOMER NEGOTIATION</button>
+          <button type="button" class="hud-btn" disabled title="Not yet available">RESOURCE ALLOCATION</button>
+        </div>
+      </div>
+
+      <div class="lounge-sub" data-sub="decisions">
+        <div class="panel-title-row">
+          <div class="panel-title">Decision Room</div>
+          <div class="panel-actions">
+            <button type="button" class="hud-btn tiny" id="decShowArchived">SHOW ARCHIVED</button>
+            <button type="button" class="hud-btn tiny" id="decNewBtn">+ NEW DECISION</button>
+          </div>
+        </div>
+        <div class="cust-layout">
+          <div id="decisionList"></div>
+          <div id="decisionDetail"></div>
+        </div>
+      </div>
+
+      <div class="lounge-sub" data-sub="ideas">
+        <div class="panel-title-row">
+          <div class="panel-title">Idea Vault</div>
+          <button type="button" class="hud-btn tiny" id="ideaNewBtn">+ NEW IDEA</button>
+        </div>
+        <div class="cust-toolbar">
+          <input type="text" id="ideaSearch" class="hud-input" placeholder="Search ideas…">
+          <select id="ideaFilterCat" class="hud-input cust-filter"></select>
+          <select id="ideaFilterStatus" class="hud-input cust-filter"></select>
+          <select id="ideaSort" class="hud-input cust-filter"><option value="newest">Newest</option><option value="income">Highest income</option><option value="cost">Lowest cost</option></select>
+          <button type="button" class="hud-btn tiny" id="ideaShowArchived">ARCHIVED</button>
+        </div>
+        <div class="grid panel-grid" id="ideaGrid"></div>
+      </div>
+
+      <div class="lounge-sub" data-sub="reflection">
+        <div class="panel-title-row">
+          <div class="panel-title">Daily Reflection</div>
+          <span class="mic-status" id="refMonthCount"></span>
+        </div>
+        <div class="cust-layout">
+          <div>
+            <input type="text" id="refSearch" class="hud-input" placeholder="Search by date (YYYY-MM-DD)" style="margin-bottom:8px">
+            <div id="refList"></div>
+          </div>
+          <div class="lounge-panel">
+            <input type="date" id="refDate" class="hud-input" style="margin-bottom:8px">
+            <div class="cust-sub-title">End-of-Day Operations Review (real data, computed automatically)</div>
+            <div id="refDayStats" style="margin-bottom:12px"></div>
+            <div class="modal-form">
+              <div class="full"><label>BIGGEST WIN TODAY</label><input type="text" id="refWin" class="hud-input"></div>
+              <div class="full"><label>WHAT CAUSED STRESS</label><input type="text" id="refStress" class="hud-input"></div>
+              <div class="full"><label>WHAT NEEDS FOLLOW-UP</label><input type="text" id="refFollowUp" class="hud-input"></div>
+              <div><label>MONEY COLLECTED</label><input type="number" id="refMoney" class="hud-input"></div>
+              <div><label>ENERGY (1-10)</label><input type="number" id="refEnergy" min="1" max="10" class="hud-input"></div>
+              <div class="full"><label>LESSON LEARNED</label><input type="text" id="refLesson" class="hud-input"></div>
+              <div class="full"><label>FIRST PRIORITY TOMORROW</label><input type="text" id="refPriorityTomorrow" class="hud-input"></div>
+              <div class="full"><label>NOTES</label><textarea id="refNotes" class="hud-input" rows="2"></textarea></div>
+            </div>
+            <div class="panel-actions"><button type="button" class="hud-btn" id="refSave">SAVE REFLECTION</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lounge-sub" data-sub="nightshift">
+        <div class="panel-title-row">
+          <div class="panel-title">Night Shift</div>
+          <button type="button" class="hud-btn" id="nightShiftToggle">TOGGLE NIGHT SHIFT</button>
+        </div>
+        <div id="nightShiftStatus" class="wx-note neutral">NIGHT SHIFT OFF</div>
+        <div class="cust-sub-title">Tomorrow's Schedule</div>
+        <div id="nightShiftSchedule"></div>
+        <div class="cust-sub-title">Unfinished Follow-Ups</div>
+        <div id="nightShiftFollowups"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= VISION CENTER ================= -->
+<div class="lk-view" data-view="vision">
+  <div class="view-body">
+    <div class="view-title-row">
+      <div class="view-title" style="color:var(--vision-accent); text-shadow:none">Vision Center</div>
+      <button type="button" class="hud-btn" id="visionReturnBtn">↩ RETURN TO COMMAND</button>
+    </div>
+
+    <div class="vision-shell">
+      <nav class="vision-subnav">
+        <button type="button" class="vision-subtab" data-sub="board">Vision Board</button>
+        <button type="button" class="vision-subtab" data-sub="scripture">Scripture</button>
+        <button type="button" class="vision-subtab" data-sub="encouragement">Daily Encouragement</button>
+        <button type="button" class="vision-subtab" data-sub="mission">Mission Statement</button>
+        <button type="button" class="vision-subtab" data-sub="values">Core Values</button>
+        <button type="button" class="vision-subtab" data-sub="gratitude">Gratitude Journal</button>
+        <button type="button" class="vision-subtab" data-sub="timeline">Success Timeline</button>
+      </nav>
+
+      <div class="vision-sub" data-sub="board">
+        <div class="panel-title-row">
+          <div class="panel-title">Vision Board</div>
+          <div class="panel-actions">
+            <select id="vbFilterCat" class="hud-input" style="max-width:180px"></select>
+            <button type="button" class="hud-btn tiny" id="vbShowArchived">SHOW ARCHIVED</button>
+            <button type="button" class="hud-btn tiny" id="vcNewCategory">+ CATEGORY</button>
+            <button type="button" class="hud-btn tiny" id="vbNewGoal">+ NEW GOAL</button>
+          </div>
+        </div>
+        <div id="visionBoardBody"></div>
+      </div>
+
+      <div class="vision-sub" data-sub="scripture"><div class="panel-title">Scripture</div><div id="scriptureBody"></div></div>
+      <div class="vision-sub" data-sub="encouragement"><div class="panel-title">Daily Encouragement</div><div id="encouragementBody"></div></div>
+      <div class="vision-sub" data-sub="mission"><div class="panel-title">Personal Mission Statement</div><div id="missionBody"></div></div>
+      <div class="vision-sub" data-sub="values"><div class="panel-title">Core Values</div><div id="valuesBody"></div></div>
+      <div class="vision-sub" data-sub="gratitude"><div class="panel-title">Gratitude Journal</div><div id="gratitudeBody"></div></div>
+      <div class="vision-sub" data-sub="timeline"><div class="panel-title">Success Timeline</div><div id="timelineBody"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SETTINGS ================= -->
+<div class="lk-view" data-view="settings">
+  <div class="view-body">
+    <div class="view-title">Settings</div>
+
+    <div class="panel"><span class="br"></span>
+      <div class="panel-title">Business Settings</div>
+      <div class="est-form">
+        <div class="qte-field"><label>BUSINESS NAME</label><input type="text" id="bsName" class="hud-input"></div>
+        <div class="qte-field"><label>OWNER</label><input type="text" id="bsOwner" class="hud-input"></div>
+        <div class="qte-field"><label>PHONE</label><input type="text" id="bsPhone" class="hud-input"></div>
+        <div class="qte-field"><label>EMAIL</label><input type="text" id="bsEmail" class="hud-input"></div>
+        <div class="qte-field"><label>WEBSITE</label><input type="text" id="bsWebsite" class="hud-input"></div>
+        <div class="qte-field"><label>SERVICE AREA</label><input type="text" id="bsArea" class="hud-input"></div>
+        <div class="qte-field full"><label>ADDRESS</label><input type="text" id="bsAddress" class="hud-input"></div>
+        <div class="qte-field"><label>REVIEW COUNT</label><input type="number" id="bsReviewCount" class="hud-input"></div>
+        <div class="qte-field"><label>RATING</label><input type="number" id="bsRating" class="hud-input" step="0.1" max="5"></div>
+        <div class="qte-field full"><label>WARRANTY TERMS</label><input type="text" id="bsWarranty" class="hud-input"></div>
+        <div class="qte-field"><label>DEPOSIT %</label><input type="number" id="bsDeposit" class="hud-input"></div>
+        <div class="qte-field"><label>TAX %</label><input type="number" id="bsTax" class="hud-input"></div>
+        <div class="qte-field"><label>HOURLY RATE</label><input type="number" id="bsHourly" class="hud-input"></div>
+        <div class="qte-field"><label>DEFAULT PROFIT MARGIN %</label><input type="number" id="bsMargin" class="hud-input"></div>
+        <div class="qte-field full"><label>PAYMENT METHODS (comma separated)</label><input type="text" id="bsPaymentMethods" class="hud-input"></div>
+        <div class="qte-field full"><label>SERVICES OFFERED (comma separated)</label><input type="text" id="bsServices" class="hud-input"></div>
+      </div>
+      <div class="panel-actions"><button type="button" class="hud-btn" id="bsSave">SAVE BUSINESS SETTINGS</button></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Voice Settings</div>
+      <div class="est-form">
+        <div class="qte-field"><label><input type="checkbox" id="vsEnabled"> VOICE ON</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsStartup"> STARTUP GREETING</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsBriefing"> BRIEFING VOICE</label></div>
+        <div class="qte-field"><label>PERSONALITY</label><select id="vsPersonality" class="hud-input"></select></div>
+        <div class="qte-field full"><label>VOICE</label><select id="vsVoiceName" class="hud-input"></select></div>
+        <div class="qte-field"><label>RATE</label><input type="number" id="vsRate" class="hud-input" min="0.5" max="2" step="0.05"></div>
+        <div class="qte-field"><label>PITCH</label><input type="number" id="vsPitch" class="hud-input" min="0" max="2" step="0.05"></div>
+        <div class="qte-field"><label>VOLUME</label><input type="number" id="vsVolume" class="hud-input" min="0" max="1" step="0.05"></div>
+      </div>
+      <div class="panel-title" style="font-size:12px; margin-top:10px">Allow Voice When</div>
+      <div class="est-form">
+        <div class="qte-field"><label><input type="checkbox" id="vsCtx_startup"> STARTUP</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsCtx_briefing"> BRIEFINGS</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsCtx_focusComplete"> FOCUS COMPLETE</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsCtx_breakComplete"> BREAK COMPLETE</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsCtx_alerts"> IMPORTANT ALERTS</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="vsCtx_manual" disabled checked> MANUAL ONLY (ALWAYS ON)</label></div>
+      </div>
+      <div class="panel-actions">
+        <button type="button" class="hud-btn" id="vsSave">SAVE VOICE SETTINGS</button>
+        <button type="button" class="hud-btn" id="vsTest">TEST VOICE</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Personal Preferences</div>
+      <div class="est-form">
+        <div class="qte-field"><label>GREETING NAME</label><input type="text" id="ppName" class="hud-input"></div>
+        <div class="qte-field"><label>WORKDAY START</label><input type="time" id="ppWorkStart" class="hud-input"></div>
+        <div class="qte-field"><label>WORKDAY END</label><input type="time" id="ppWorkEnd" class="hud-input"></div>
+        <div class="qte-field"><label>DEFAULT FOCUS (MIN)</label><input type="number" id="ppFocusMin" class="hud-input"></div>
+        <div class="qte-field"><label>DEFAULT BREAK (MIN)</label><input type="number" id="ppBreakMin" class="hud-input"></div>
+        <div class="qte-field"><label><input type="checkbox" id="ppShowGames"> SHOW GAMES</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="ppShowReflection"> SHOW REFLECTION</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="ppShowAmbience"> SHOW AMBIENCE</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="ppShowBattery"> SHOW BATTERY</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="ppShowQuote"> SHOW QUOTE/SCRIPTURE</label></div>
+      </div>
+      <div class="panel-actions"><button type="button" class="hud-btn" id="ppSave">SAVE PREFERENCES</button></div>
+      <div class="panel-title" style="font-size:12px; margin-top:14px">Saved Quotes / Scripture (yours only — never pulled from the internet)</div>
+      <div class="est-form">
+        <div class="qte-field full"><label>TEXT</label><input type="text" id="quoteText" class="hud-input"></div>
+        <div class="qte-field"><label>AUTHOR (OPTIONAL)</label><input type="text" id="quoteAuthor" class="hud-input"></div>
+      </div>
+      <div class="panel-actions"><button type="button" class="hud-btn" id="quoteAdd">ADD QUOTE</button></div>
+      <div id="quoteList" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Device Settings</div>
+      <div class="est-form">
+        <div class="qte-field"><label><input type="checkbox" id="dsShowBattery"> SHOW BATTERY</label></div>
+        <div class="qte-field"><label>LOW-BATTERY THRESHOLD %</label><input type="number" id="dsThreshold" class="hud-input" min="1" max="100"></div>
+        <div class="qte-field"><label><input type="checkbox" id="dsAutoLowPower"> AUTO LOW-POWER VISUALS</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="dsVoiceAlert"> LOW-BATTERY VOICE ALERT</label></div>
+        <div class="qte-field"><label><input type="checkbox" id="dsShowConnection"> SHOW CONNECTION STATUS</label></div>
+      </div>
+      <div class="panel-actions"><button type="button" class="hud-btn" id="dsSave">SAVE DEVICE SETTINGS</button></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Messaging Settings</div>
+      <div class="est-form">
+        <div class="qte-field"><label>BUSINESS PHONE</label><input type="text" id="msPhone" class="hud-input"></div>
+        <div class="qte-field full"><label>SIGNATURE</label><input type="text" id="msSignature" class="hud-input"></div>
+        <div class="qte-field"><label><input type="checkbox" id="msConfirm"> CONFIRM BEFORE LOGGING AS SENT</label></div>
+        <div class="qte-field"><label>FOLLOW-UP DEFAULT (DAYS)</label><input type="number" id="msFollowUpDays" class="hud-input"></div>
+        <div class="qte-field"><label>QUIET HOURS START</label><input type="time" id="msQuietStart" class="hud-input"></div>
+        <div class="qte-field"><label>QUIET HOURS END</label><input type="time" id="msQuietEnd" class="hud-input"></div>
+        <div class="qte-field full"><label>PROVIDER STATUS</label><div id="msProviderStatus" class="wx-note neutral"></div></div>
+        <div class="qte-field full"><label>BACKEND ENDPOINT (WHEN CONFIGURED — NEVER PUT SECRETS HERE)</label><input type="text" id="msBackendEndpoint" class="hud-input" placeholder="https://your-backend.example.com/sms"></div>
+      </div>
+      <div class="panel-actions"><button type="button" class="hud-btn" id="msSave">SAVE MESSAGING SETTINGS</button></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Mission Control Settings</div>
+      <div id="mcSettingsBody"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Intelligence Settings</div>
+      <div id="intelSettingsBody"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Radar Settings</div>
+      <div id="radarSettingsBody"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Workflow Settings</div>
+      <div id="workflowSettingsBody"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Marketing Settings</div>
+      <div id="marketingSettingsBody"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Branding</div>
+      <div class="favicon-preview">
+        <img src="favicon-16x16.png" width="16" height="16" alt="16x16 favicon">
+        <img src="favicon-32x32.png" width="32" height="32" alt="32x32 favicon">
+        <img src="apple-touch-icon.png" width="60" height="60" alt="apple touch icon">
+      </div>
+      <div class="mic-status">Favicon caching is aggressive — a hard refresh (Cmd+Shift+R) may be needed to see it update in an already-open tab.</div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title-row"><div class="panel-title">Crew</div><button type="button" class="hud-btn tiny" id="crewAddBtn">+ ADD CREW</button></div>
+      <div id="crewList"></div>
+      <div class="cust-sub-title">Crew Board — Today</div>
+      <div id="crewBoardBody"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><span class="br"></span>
+      <div class="panel-title">Data Management</div>
+      <div class="panel-actions">
+        <button type="button" class="hud-btn" id="exportJsonBtn">EXPORT JSON</button>
+        <button type="button" class="hud-btn" id="restoreBtn">IMPORT JSON</button>
+        <input type="file" id="importJsonInput" accept="application/json" style="display:none">
+        <button type="button" class="hud-btn" id="exportCustomersCsvBtn">EXPORT CUSTOMERS CSV</button>
+        <button type="button" class="hud-btn" id="exportJobsCsvBtn">EXPORT JOBS CSV</button>
+        <button type="button" class="hud-btn" id="exportPaymentsCsvBtn">EXPORT PAYMENTS CSV</button>
+        <button type="button" class="hud-btn" id="backupBtn">CREATE BACKUP</button>
+      </div>
+      <div class="panel-actions" style="margin-top:10px">
+        <button type="button" class="hud-btn" id="clearDemoBtn" style="border-color:var(--amber); color:var(--amber)">CLEAR DEMO DATA</button>
+        <button type="button" class="hud-btn" id="resetDashboardBtn" style="border-color:var(--danger); color:var(--danger)">RESET DASHBOARD</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">L&amp;K OS v2.3 &middot; <b id="footerRating">4.9&#9733;</b> &middot; LICENSED &amp; INSURED</div>
+
+<!-- ============ modals ============ -->
+
+<div class="modal" id="jobModal">
+  <div class="modal-card">
+    <div class="modal-title" id="jmTitle">New Job</div>
+    <div class="modal-form">
+      <div class="full"><label>CUSTOMER NAME</label><input type="text" id="jmCustomer" class="hud-input"></div>
+      <div><label>SERVICE</label><select id="jmService" class="hud-input"></select></div>
+      <div><label>PRIORITY</label><select id="jmPriority" class="hud-input"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></div>
+      <div class="full"><label>ADDRESS</label><input type="text" id="jmAddress" class="hud-input"></div>
+      <div><label>PHONE</label><input type="text" id="jmPhone" class="hud-input"></div>
+      <div><label>SOURCE</label><input type="text" id="jmSource" class="hud-input" placeholder="Referral, Thumbtack..."></div>
+      <div><label>JOB VALUE</label><input type="number" id="jmValue" class="hud-input" min="0"></div>
+      <div><label>DUE DATE</label><input type="date" id="jmDue" class="hud-input"></div>
+      <div><label>DEPOSIT AMOUNT</label><input type="number" id="jmDeposit" class="hud-input" min="0"></div>
+      <div><label>DEPOSIT STATUS</label><select id="jmDepositStatus" class="hud-input"><option value="none">None</option><option value="requested">Requested</option><option value="paid">Paid</option></select></div>
+      <div><label>CREW</label><select id="jmCrew" class="hud-input"></select></div>
+      <div><label>STAGE</label><select id="jmStage" class="hud-input"></select></div>
+      <div><label>LATITUDE (OPTIONAL — FOR RADAR MAP)</label><input type="number" id="jmLat" class="hud-input" step="any" placeholder="29.7604"></div>
+      <div><label>LONGITUDE (OPTIONAL — FOR RADAR MAP)</label><input type="number" id="jmLng" class="hud-input" step="any" placeholder="-95.3698"></div>
+      <div class="full" style="border-top:1px solid var(--holo-line); margin-top:4px; padding-top:10px; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--text-dim)">JOB DETAILS</div>
+      <div><label>FENCE TYPE</label><input type="text" id="jmFenceType" class="hud-input" placeholder="Wood, Chain Link, Vinyl..."></div>
+      <div><label>FENCE STYLE</label><input type="text" id="jmFenceStyle" class="hud-input" placeholder="Privacy, Picket, Split Rail..."></div>
+      <div><label>LINEAR FEET</label><input type="number" id="jmLinearFeet" class="hud-input" min="0" placeholder="Not recorded"></div>
+      <div><label>NUMBER OF GATES</label><input type="number" id="jmGateCount" class="hud-input" min="0" placeholder="Not recorded"></div>
+      <div><label>ASSIGNED CREW (IF NOT LISTED ABOVE)</label><input type="text" id="jmAssignedCrewName" class="hud-input"></div>
+      <div><label>CREW LEADER</label><input type="text" id="jmCrewLeader" class="hud-input"></div>
+      <div class="full" style="border-top:1px solid var(--holo-line); margin-top:4px; padding-top:10px; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--text-dim)">DATES</div>
+      <div><label>ESTIMATED START DATE</label><input type="date" id="jmEstStart" class="hud-input"></div>
+      <div><label>ACTUAL START DATE</label><input type="date" id="jmActualStart" class="hud-input"></div>
+      <div><label>COMPLETION DATE</label><input type="date" id="jmCompletionDate" class="hud-input"></div>
+      <div class="full" style="border-top:1px solid var(--holo-line); margin-top:4px; padding-top:10px; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--text-dim)">BILLING</div>
+      <div><label>DEPOSIT REQUIRED ($)</label><input type="number" id="jmDepositRequired" class="hud-input" min="0" placeholder="Not recorded"></div>
+      <div><label>DEPOSIT DATE</label><input type="date" id="jmDepositDate" class="hud-input"></div>
+      <div><label>FINAL INVOICE AMOUNT ($)</label><input type="number" id="jmFinalInvoice" class="hud-input" min="0" placeholder="Not recorded"></div>
+      <div><label>FINAL PAYMENT AMOUNT ($)</label><input type="number" id="jmFinalPayment" class="hud-input" min="0" placeholder="Not recorded"></div>
+      <div><label>PAYMENT STATUS</label><select id="jmPaymentStatus" class="hud-input"><option value="">Not recorded</option><option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option></select></div>
+      <div class="full"><label>NOTES</label><textarea id="jmNotes" class="hud-input" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="jmDelete" style="border-color:var(--danger); color:var(--danger)">DELETE</button>
+        <button type="button" class="hud-btn" id="jmDuplicate">DUPLICATE</button>
+        <button type="button" class="hud-btn" id="jmArchive">ARCHIVE</button>
+        <button type="button" class="hud-btn" id="jmText">💬 TEXT</button>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="jmCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="jmSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="customerModal">
+  <div class="modal-card">
+    <div class="modal-title" id="cmTitle">New Customer</div>
+    <div class="modal-form">
+      <div class="full"><label>FULL NAME</label><input type="text" id="cmName" class="hud-input"></div>
+      <div><label>PHONE</label><input type="text" id="cmPhone" class="hud-input"></div>
+      <div><label>EMAIL</label><input type="text" id="cmEmail" class="hud-input"></div>
+      <div class="full"><label>ADDRESS</label><input type="text" id="cmAddress" class="hud-input"></div>
+      <div><label>CITY</label><input type="text" id="cmCity" class="hud-input"></div>
+      <div><label>ZIP</label><input type="text" id="cmZip" class="hud-input" maxlength="10"></div>
+      <div><label>LEAD SOURCE</label><input type="text" id="cmSource" class="hud-input" placeholder="Referral, Thumbtack..."></div>
+      <div><label>PREFERRED CONTACT</label><select id="cmPreferred" class="hud-input"><option>Call</option><option>Text</option><option>Email</option></select></div>
+      <div><label>STATUS</label><select id="cmStatus" class="hud-input"><option value="lead">Lead</option><option value="active">Active</option><option value="past">Past</option><option value="inactive">Inactive</option></select></div>
+      <div><label>WARRANTY EXPIRES</label><input type="date" id="cmWarranty" class="hud-input"></div>
+      <div><label>LEAD DATE</label><input type="date" id="cmLeadDate" class="hud-input"></div>
+      <div><label>COST OF LEAD ($)</label><input type="number" id="cmCostOfLead" class="hud-input" min="0" step="0.01" placeholder="Leave blank if unknown"></div>
+      <div><label>REVIEW STATUS</label><input type="text" id="cmReviewStatus" class="hud-input" placeholder="Yes, No, Pending..."></div>
+      <div class="full"><label>NOTES</label><textarea id="cmNotes" class="hud-input" rows="2"></textarea></div>
+      <div class="full" id="cmImportInfo" style="display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="cmCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="cmSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="importWizardModal">
+  <div class="modal-card" style="width:min(1040px,96vw)">
+    <div class="modal-title" id="iwTitle">Import CRM Workbook</div>
+    <div id="importWizardBody"></div>
+    <div class="modal-actions" id="importWizardActions"></div>
+  </div>
+</div>
+
+<div class="modal" id="importHistoryModal">
+  <div class="modal-card" style="width:min(760px,96vw)">
+    <div class="modal-title">Import History</div>
+    <div id="importHistoryBody"></div>
+    <div class="modal-actions"><div></div><div><button type="button" class="hud-btn" id="importHistoryClose">CLOSE</button></div></div>
+  </div>
+</div>
+
+<div class="modal" id="paymentModal">
+  <div class="modal-card">
+    <div class="modal-title">Add Payment</div>
+    <div class="modal-form">
+      <div><label>CUSTOMER</label><select id="payCustomer" class="hud-input"></select></div>
+      <div><label>JOB</label><select id="payJob" class="hud-input"></select></div>
+      <div><label>AMOUNT</label><input type="number" id="payAmount" class="hud-input" min="0" step="0.01"></div>
+      <div><label>METHOD</label><select id="payMethod" class="hud-input"><option>Cash</option><option>Check</option><option>Card</option><option>Zelle</option></select></div>
+      <div><label>DATE</label><input type="date" id="payDate" class="hud-input"></div>
+      <div class="full"><label>NOTE</label><input type="text" id="payNote" class="hud-input"></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="payCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="paySave">SAVE PAYMENT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="expenseModal">
+  <div class="modal-card">
+    <div class="modal-title">Add Expense</div>
+    <div class="modal-form">
+      <div><label>CATEGORY</label><select id="expCategory" class="hud-input"></select></div>
+      <div><label>JOB (optional)</label><select id="expJob" class="hud-input"></select></div>
+      <div><label>AMOUNT</label><input type="number" id="expAmount" class="hud-input" min="0" step="0.01"></div>
+      <div><label>DATE</label><input type="date" id="expDate" class="hud-input"></div>
+      <div class="full"><label>NOTE</label><input type="text" id="expNote" class="hud-input"></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="expCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="expSave">SAVE EXPENSE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="eventModal">
+  <div class="modal-card">
+    <div class="modal-title" id="emTitle">New Event</div>
+    <div class="modal-form">
+      <div class="full"><label>TITLE</label><input type="text" id="emName" class="hud-input"></div>
+      <div><label>TYPE</label><select id="emType" class="hud-input"></select></div>
+      <div><label>DATE</label><input type="date" id="emDate" class="hud-input"></div>
+      <div><label>START TIME</label><input type="time" id="emStart" class="hud-input"></div>
+      <div><label>END TIME</label><input type="time" id="emEnd" class="hud-input"></div>
+      <div><label>CUSTOMER</label><select id="emCustomer" class="hud-input"></select></div>
+      <div><label>JOB</label><select id="emJob" class="hud-input"></select></div>
+      <div><label>CREW</label><select id="emCrew" class="hud-input"></select></div>
+      <div class="full"><label>ADDRESS</label><input type="text" id="emAddress" class="hud-input"></div>
+      <div class="full"><label>NOTES</label><textarea id="emNotes" class="hud-input" rows="2"></textarea></div>
+      <div><label><input type="checkbox" id="emReminder"> REMINDER</label></div>
+      <div><label><input type="checkbox" id="emCompleted"> COMPLETED</label></div>
+    </div>
+    <div class="modal-actions">
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="emDelete" style="border-color:var(--danger); color:var(--danger)">DELETE</button>
+        <button type="button" class="hud-btn" id="emText">💬 TEXT</button>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="emCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="emSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="crewModal">
+  <div class="modal-card">
+    <div class="modal-title" id="crTitle">New Crew Member</div>
+    <div class="modal-form">
+      <div class="full"><label>NAME</label><input type="text" id="crName" class="hud-input"></div>
+      <div><label>PHONE</label><input type="text" id="crPhone" class="hud-input"></div>
+      <div><label>ROLE</label><input type="text" id="crRole" class="hud-input"></div>
+      <div><label><input type="checkbox" id="crActive"> ACTIVE</label></div>
+      <div><label>PAY RATE ($/HR)</label><input type="number" id="crPayRate" class="hud-input" min="0"></div>
+      <div><label>HOURS THIS WEEK</label><input type="number" id="crHours" class="hud-input" min="0"></div>
+      <div><label>AMOUNT OWED</label><input type="number" id="crOwed" class="hud-input" min="0"></div>
+      <div><label>STATUS</label><select id="crStatus" class="hud-input"><option value="available">Available</option><option value="traveling">Traveling</option><option value="on-site">On Site</option><option value="delayed">Delayed</option><option value="completed">Completed</option><option value="off-duty">Off Duty</option></select></div>
+      <div class="full"><label>OPEN ISSUES</label><input type="text" id="crIssues" class="hud-input" placeholder="Anything blocking this crew right now..."></div>
+      <div class="full"><label>NOTES</label><textarea id="crNotes" class="hud-input" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="hud-btn" id="crDelete" style="border-color:var(--danger); color:var(--danger)">DELETE</button>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="crCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="crSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="musicPresetModal">
+  <div class="modal-card">
+    <div class="modal-title" id="mpTitle">Playlist</div>
+    <div class="modal-form">
+      <div class="full"><label>PLAYLIST NAME</label><input type="text" id="mpPlaylistName" class="hud-input"></div>
+      <div class="full"><label>APPLE MUSIC URL</label><input type="text" id="mpUrl" class="hud-input" placeholder="https://music.apple.com/..."></div>
+      <div><label>MOOD</label><input type="text" id="mpMood" class="hud-input"></div>
+      <div><label>DEFAULT FOCUS (MIN)</label><input type="number" id="mpDuration" class="hud-input"></div>
+      <div class="full"><label>NOTES</label><textarea id="mpNotes" class="hud-input" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="mpCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="mpSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="decisionModal">
+  <div class="modal-card" style="width:min(680px,94vw)">
+    <div class="modal-title" id="decTitle2">New Decision</div>
+    <div class="modal-form">
+      <div class="full"><label>TITLE</label><input type="text" id="decName" class="hud-input"></div>
+      <div class="full"><label>DESCRIPTION</label><input type="text" id="decDesc" class="hud-input"></div>
+      <div><label>DEADLINE</label><input type="date" id="decDeadline" class="hud-input"></div>
+      <div class="full"><label>NOTES</label><input type="text" id="decNotes" class="hud-input"></div>
+    </div>
+    <div class="panel-title" style="font-size:12px; margin-top:12px">Optional Business Context</div>
+    <div class="modal-form">
+      <div><label>LINKED CUSTOMER</label><select id="decCustomer" class="hud-input"></select></div>
+      <div><label>LINKED JOB</label><select id="decJob" class="hud-input"></select></div>
+      <div><label>LEAD SOURCE</label><input type="text" id="decLeadSource" class="hud-input"></div>
+      <div><label>CREW MEMBER</label><select id="decCrew" class="hud-input"></select></div>
+      <div><label>EQUIPMENT PURCHASE</label><input type="text" id="decEquipment" class="hud-input"></div>
+      <div><label>MARKETING CAMPAIGN</label><input type="text" id="decCampaign" class="hud-input"></div>
+    </div>
+    <div class="panel-actions"><button type="button" class="hud-btn tiny" id="decPullValues">PULL VALUES FROM LINKED JOB INTO OPTION 1</button></div>
+    <div class="panel-title" style="font-size:12px; margin-top:12px">Weighted Criteria (0-5)</div>
+    <div class="modal-form">
+      <div><label>PROFIT</label><input type="number" id="decW_profit" class="hud-input" min="0" max="5"></div>
+      <div><label>SPEED</label><input type="number" id="decW_speed" class="hud-input" min="0" max="5"></div>
+      <div><label>RISK</label><input type="number" id="decW_risk" class="hud-input" min="0" max="5"></div>
+      <div><label>EFFORT</label><input type="number" id="decW_effort" class="hud-input" min="0" max="5"></div>
+      <div><label>LONG-TERM VALUE</label><input type="number" id="decW_longterm" class="hud-input" min="0" max="5"></div>
+      <div><label>PERSONAL INTEREST</label><input type="number" id="decW_personal" class="hud-input" min="0" max="5"></div>
+    </div>
+    <div class="panel-title-row" style="margin-top:14px"><div class="panel-title" style="font-size:12px">Options</div><button type="button" class="hud-btn tiny" id="decAddOption">+ ADD OPTION</button></div>
+    <div id="decOptionForms"></div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="decCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="decSave">SAVE DECISION</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="ideaModal">
+  <div class="modal-card">
+    <div class="modal-title" id="ideaModalTitle">New Idea</div>
+    <div class="modal-form">
+      <div class="full"><label>TITLE</label><input type="text" id="ideaName" class="hud-input"></div>
+      <div><label>CATEGORY</label><select id="ideaCategory" class="hud-input"></select></div>
+      <div><label>STATUS</label><select id="ideaStatus" class="hud-input"></select></div>
+      <div class="full"><label>DESCRIPTION</label><textarea id="ideaDesc" class="hud-input" rows="2"></textarea></div>
+      <div><label>POTENTIAL INCOME</label><input type="number" id="ideaIncome" class="hud-input"></div>
+      <div><label>ESTIMATED COST</label><input type="number" id="ideaCost" class="hud-input"></div>
+      <div><label>DIFFICULTY</label><select id="ideaDifficulty" class="hud-input"><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
+      <div><label>TIME HORIZON</label><input type="text" id="ideaHorizon" class="hud-input" placeholder="This quarter..."></div>
+      <div class="full"><label>NEXT ACTION</label><input type="text" id="ideaNextAction" class="hud-input"></div>
+      <div><label>PROGRESS %</label><input type="number" id="ideaProgress" class="hud-input" min="0" max="100" step="5"></div>
+      <div class="full"><label>NOTES</label><textarea id="ideaNotes" class="hud-input" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="ideaCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="ideaSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="tplModal">
+  <div class="modal-card">
+    <div class="modal-title" id="tplModalTitle">New Template</div>
+    <div class="modal-form">
+      <div class="full"><label>LABEL</label><input type="text" id="tplLabel" class="hud-input"></div>
+      <div class="full"><label>CATEGORY</label><input type="text" id="tplCategory" class="hud-input" placeholder="Lead, Estimate, Job, Payment, Review, Follow-Up..."></div>
+      <div class="full"><label>BODY</label><textarea id="tplBody" class="hud-input" rows="4" placeholder="Use tokens like {firstName}, {service}, {estimateAmount}..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="tplCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="tplSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- focus completion prompt -->
+<div class="modal" id="focusPrompt">
+  <div class="modal-card">
+    <div class="modal-title">Focus Session Complete</div>
+    <p class="mic-status" style="margin-bottom:14px">Nice work. What's next?</p>
+    <div class="panel-actions">
+      <button type="button" class="hud-btn" id="focusMarkDone">MARK TASK COMPLETED</button>
+      <button type="button" class="hud-btn" id="focusContinue">CONTINUE FOCUSING</button>
+      <button type="button" class="hud-btn" id="focusTakeBreak">TAKE A STRATEGIC BREAK</button>
+      <button type="button" class="hud-btn" id="focusReturnDashboard">RETURN TO DASHBOARD</button>
+    </div>
+  </div>
+</div>
+
+<!-- break completion prompt -->
+<div class="modal" id="breakDone">
+  <div class="modal-card">
+    <div class="modal-title">Break Complete</div>
+    <p class="mic-status" style="margin-bottom:14px">Break complete. Ready to return?</p>
+    <div class="panel-actions"><button type="button" class="hud-btn" id="breakReturn">RETURN TO COMMAND</button></div>
+  </div>
+</div>
+
+<!-- simulation result -->
+<div class="modal" id="simResult">
+  <div class="modal-card">
+    <div class="modal-title">Result</div>
+    <p class="mic-status" id="simResultText" style="margin-bottom:14px"></p>
+    <div class="panel-actions"><button type="button" class="hud-btn" id="simResultClose">CLOSE</button></div>
+  </div>
+</div>
+
+<div class="modal" id="visionGoalModal">
+  <div class="modal-card">
+    <div class="modal-title">Vision Goal</div>
+    <div class="modal-form">
+      <div class="full"><label>TITLE</label><input type="text" id="vgTitle" class="hud-input"></div>
+      <div><label>CATEGORY</label><select id="vgCategory" class="hud-input"></select></div>
+      <div><label>PRIORITY</label><select id="vgPriority" class="hud-input"><option>Low</option><option>Medium</option><option>High</option></select></div>
+      <div class="full"><label>DESCRIPTION</label><textarea id="vgDesc" class="hud-input" rows="2"></textarea></div>
+      <div><label>TARGET DATE</label><input type="date" id="vgTargetDate" class="hud-input"></div>
+      <div><label>ESTIMATED COST</label><input type="number" id="vgCost" class="hud-input" min="0"></div>
+      <div><label>COMPLETION %</label><input type="number" id="vgProgress" class="hud-input" min="0" max="100" step="5"></div>
+      <div><label>RELATED CUSTOMER/PROJECT</label><select id="vgCustomer" class="hud-input"></select></div>
+      <div class="full"><label>WHY THIS MATTERS</label><input type="text" id="vgWhy" class="hud-input"></div>
+      <div class="full"><label>RELATED BUSINESS OBJECTIVE</label><input type="text" id="vgRelatedObjective" class="hud-input"></div>
+      <div class="full"><label>PHOTO (STORED LOCALLY IN THIS BROWSER)</label><input type="file" id="vgPhoto" accept="image/*"></div>
+      <div class="full"><label>NOTES</label><textarea id="vgNotes" class="hud-input" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button type="button" class="hud-btn" id="vgCancel">CANCEL</button>
+        <button type="button" class="hud-btn" id="vgSave">SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="printEstimate"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="lk-os/data.js"></script>
+<script src="lk-os/integrations.js"></script>
+<script src="lk-os/audio.js"></script>
+<script src="lk-os/auditlog.js"></script>
+<script src="lk-os/contextactions.js"></script>
+<script src="lk-os/device.js"></script>
+<script src="lk-os/boot.js"></script>
+<script src="lk-os/particles.js"></script>
+<script src="lk-os/weather.js"></script>
+<script src="lk-os/radar.js"></script>
+<script src="lk-os/missionlog.js"></script>
+<script src="lk-os/finance.js"></script>
+<script src="lk-os/estimator.js"></script>
+<script src="lk-os/pipeline.js"></script>
+<script src="lk-os/customers.js"></script>
+<script src="lk-os/vendor/xlsx.core.min.js"></script>
+<script src="lk-os/excelimport.js"></script>
+<script src="lk-os/metrics.js"></script>
+<script src="lk-os/analytics.js"></script>
+<script src="lk-os/bi.js"></script>
+<script src="lk-os/calendar.js"></script>
+<script src="lk-os/media.js"></script>
+<script src="lk-os/content-studio.js"></script>
+<script src="lk-os/panels-command.js"></script>
+<script src="lk-os/csvparse.js"></script>
+<script src="lk-os/connector-meta.js"></script>
+<script src="lk-os/connector-facebook.js"></script>
+<script src="lk-os/connector-instagram.js"></script>
+<script src="lk-os/connector-tiktok.js"></script>
+<script src="lk-os/connector-googlebiz.js"></script>
+<script src="lk-os/marketing.js"></script>
+<script src="lk-os/smsadapters.js"></script>
+<script src="lk-os/templates.js"></script>
+<script src="lk-os/messages.js"></script>
+<script src="lk-os/workflows.js"></script>
+<script src="lk-os/music.js"></script>
+<script src="lk-os/ambient.js"></script>
+<script src="lk-os/focus.js"></script>
+<script src="lk-os/breakroom.js"></script>
+<script src="lk-os/simulations.js"></script>
+<script src="lk-os/decisions.js"></script>
+<script src="lk-os/ideas.js"></script>
+<script src="lk-os/reflection.js"></script>
+<script src="lk-os/lounge.js"></script>
+<script src="lk-os/visionstore.js"></script>
+<script src="lk-os/scripture-kjv.js"></script>
+<script src="lk-os/vision.js"></script>
+<script src="lk-os/missioncontrol.js"></script>
+<script src="lk-os/notifications.js"></script>
+<script src="lk-os/crewops.js"></script>
+<script src="lk-os/settings.js"></script>
+<script src="lk-os/assistant.js"></script>
+<script src="lk-os/commandpalette.js"></script>
+<script src="lk-os/nav.js"></script>
+<script src="lk-os/shortcuts.js"></script>
+<script src="lk-os/app.js"></script>
+</body>
+</html>
